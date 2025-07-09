@@ -84,7 +84,7 @@ def create_text_image(text, width, height):
 # === VIDEO ERSTELLEN ===
 def create_math_video():
     equation = generate_equation_variant()
-    clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 5)
+    clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 3)
 
     # Textbild mit voller Breite, Höhe 200
     text_np = create_text_image(equation, clip.w, 200)
