@@ -118,28 +118,22 @@ def create_math_video():
     equation = generate_equation_variant()
     clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 3)
 
-    # Textbild mit voller Breite, Höhe 200
+    clip = clip.resize(height=1080)  # Frühzeitig skalieren!
+
     text_np = create_text_image(equation, clip.w, 200)
     text_clip = ImageClip(text_np, duration=clip.duration).set_position(("center", clip.h - 220))
 
-    # Audio laden
-    audio = AudioFileClip("sound.mp3").set_duration(clip.duration)
-
-    # Resize auf Full HD (1080p Höhe)
-    clip = clip.resize(height=1080)
-
-    final = CompositeVideoClip([clip, text_clip])
+    final = CompositeVideoClip([clip, text_clip])  # Text overlay hinzufügen
 
     filename = os.path.join(OUTPUT_FOLDER, f"{datetime.date.today()}_{int(time.time())}_math_video.mp4")
 
-    # Schreiben mit höherer Qualität (langsameres Preset, höhere Bitrate)
     final.write_videofile(
         filename,
         codec="libx264",
-        audio=False,  # kein Audio
-        fps=24,       # spart Speicher
-        preset="ultrafast",  # spart RAM, etwas größere Datei
-        threads=2     # weniger parallel, spart RAM
+        audio=False,
+        fps=24,
+        preset="ultrafast",
+        threads=2
     )
     return filename
 
