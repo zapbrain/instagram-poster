@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tiktok-poster
+    name: instagram-poster
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
