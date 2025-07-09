@@ -121,7 +121,7 @@ def create_math_video():
     clip = clip.resize(height=1080)  # Frühzeitig skalieren!
 
     text_np = create_text_image(equation, clip.w, 200)
-    text_clip = ImageClip(text_np, duration=clip.duration).set_position(("center", clip.h - 220))
+    text_clip = ImageClip(text_np, duration=clip.duration).set_position("center")
 
     final = CompositeVideoClip([clip, text_clip])  # Text overlay hinzufügen
 
