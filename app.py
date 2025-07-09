@@ -105,13 +105,13 @@ def create_text_image(text, width, height):
     img = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Arial.ttf", 35)
+        font = ImageFont.truetype("Arial.ttf", 80)
     except:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 35) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 80) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text(((width - w) // 2, (height - h) // 2), text, font=font, fill="black")
-    return np.array(img.convert("RGB"))
+    return np.array(img)
 
 # === VIDEO ERSTELLEN ===
 def create_math_video():
