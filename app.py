@@ -73,13 +73,14 @@ def create_text_image(text, width, height):
     img = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Arial.ttf", 65)  # größere Schrift für bessere Lesbarkeit
+        font_size = int(height * 0.05)
+        font = ImageFont.truetype("Arial.ttf", font_size)
     except:
         font = ImageFont.truetype("DejaVuSans-Bold.ttf", 65) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text(((width - w) // 2, (height - h) // 2), text, font=font, fill="black")
-    return np.array(img)
+    return np.array(img.convert("RGB"))
 
 # === VIDEO ERSTELLEN ===
 def create_math_video():
@@ -88,7 +89,7 @@ def create_math_video():
 
     # Textbild mit voller Breite, Höhe 200
     text_np = create_text_image(equation, clip.w, 200)
-    text_clip = ImageClip(text_np, duration=clip.duration).set_position(("center", "bottom"))
+    text_clip = ImageClip(text_np, duration=clip.duration).set_position(("center", clip.h - 220))
 
     # Audio laden
     audio = AudioFileClip("sound.mp3").set_duration(clip.duration)
