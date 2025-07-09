@@ -96,7 +96,7 @@ def create_math_video():
     # Resize auf Full HD (1080p Höhe)
     clip = clip.resize(height=1080)
 
-    final = CompositeVideoClip([clip, text_clip]).set_audio(audio)
+    final = CompositeVideoClip([clip, text_clip])
 
     filename = os.path.join(OUTPUT_FOLDER, f"{datetime.date.today()}_{int(time.time())}_math_video.mp4")
 
@@ -104,13 +104,10 @@ def create_math_video():
     final.write_videofile(
         filename,
         codec="libx264",
-        audio_codec="aac",
-        temp_audiofile="temp-audio.m4a",
-        remove_temp=True,
-        fps=30,
-        preset="slow",
-        bitrate="5000k",
-        threads=4
+        audio=False,  # kein Audio
+        fps=24,       # spart Speicher
+        preset="ultrafast",  # spart RAM, etwas größere Datei
+        threads=2     # weniger parallel, spart RAM
     )
     return filename
 
