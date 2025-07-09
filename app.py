@@ -72,10 +72,15 @@ def generate_equation_variant():
         return f"(x + {r1})(x - {r2}) = 0"
 
     elif variant == 5:
+    # Quadratische Gleichung mit reellen Lösungen
+    while True:
         a = random.randint(1, 5)
         b = random.randint(1, 10)
         c = random.randint(1, 10)
-        return f"{a}x² + {b}x + {c} = 0"
+        discriminant = b**2 - 4*a*c
+        if discriminant > 0:
+            return f"{a}x² + {b}x + {c} = 0"
+
 
     elif variant == 6:
         r1 = random.randint(1, 9)
