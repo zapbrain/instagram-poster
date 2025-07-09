@@ -206,13 +206,15 @@ if __name__ == "__main__":
 
             wait_minutes = random.randint(50, 70)
             next_post = now + datetime.timedelta(minutes=wait_minutes)
-            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')}) bis zum nächsten Post.")
-            time.sleep(wait_minutes * 60)
 
-        else:
-            next_start = now.replace(hour=10, minute=0, second=0, microsecond=0)
-            if now.hour >= 20:
-                next_start += datetime.timedelta(days=1)
-            wait_seconds = (next_start - now).total_seconds()
-            print(f"🌙 Außerhalb der Postzeit. Warte {int(wait_seconds // 60)} Minuten bis 10 Uhr.")
-            time.sleep(wait_seconds)
+            # Prüfen, ob nächster Post noch im Zeitfenster liegt
+            if next_post.hour < 20:
+                print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')}) bis zum nächsten Post.")
+                time.sleep(wait_minutes * 60)
+            else:
+                # Warten bis zum nächsten Tag um 10:00
+                next_start = now.replace(hour=10, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
+                wait_seconds = (next_start - now).total_seconds()
+                print(f"🌙 Geplante nächste Zeit ({next_post.strftime('%H:%M')}) liegt außerhalb der Postzeit. Warte bis morgen 10:00 Uhr.")
+                time.sleep(wait_seconds)
+
