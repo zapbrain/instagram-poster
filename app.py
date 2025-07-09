@@ -2,6 +2,7 @@ import os
 import time
 import random
 import datetime
+import socket
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -14,10 +15,6 @@ import cloudinary
 import cloudinary.uploader
 import requests
 
-# Fix für Pillow >=10
-if not hasattr(Image, "ANTIALIAS"):
-    Image.ANTIALIAS = Image.Resampling.LANCZOS
-
 # === ENV-VARIABLEN ===
 CLOUD_NAME = os.environ["CLOUD_NAME"]
 API_KEY = os.environ["API_KEY"]
@@ -27,6 +24,18 @@ ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
 
 OUTPUT_FOLDER = "daily_tiktoks"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+# === PORT-CHECK (Beispiel) ===
+def check_port(port=8080):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("", port))
+            s.listen(1)
+            print(f"Port {port} ist frei.")
+            return True
+        except OSError:
+            print(f"Port {port} ist bereits belegt.")
+            return False
 
 # === GLEICHUNGSGENERATOR ===
 def generate_equation_variant():
@@ -64,27 +73,45 @@ def create_text_image(text, width, height):
     img = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Arial.ttf", 45)
+        font = ImageFont.truetype("Arial.ttf", 65)  # größere Schrift für bessere Lesbarkeit
     except:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 45) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 65) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text(((width - w) // 2, (height - h) // 2), text, font=font, fill="black")
     return np.array(img)
 
-
 # === VIDEO ERSTELLEN ===
 def create_math_video():
     equation = generate_equation_variant()
     clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 5)
+
+    # Textbild mit voller Breite, Höhe 200
     text_np = create_text_image(equation, clip.w, 200)
-    text_clip = ImageClip(text_np, duration=clip.duration).set_position("center")
+    text_clip = ImageClip(text_np, duration=clip.duration).set_position(("center", "bottom"))
+
+    # Audio laden
     audio = AudioFileClip("sound.mp3").set_duration(clip.duration)
-    clip = clip.resize(height=540)
+
+    # Resize auf Full HD (1080p Höhe)
+    clip = clip.resize(height=1080)
+
     final = CompositeVideoClip([clip, text_clip]).set_audio(audio)
 
     filename = os.path.join(OUTPUT_FOLDER, f"{datetime.date.today()}_{int(time.time())}_math_video.mp4")
-    final.write_videofile(filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, fps=30, preset="medium", threads=4)
+
+    # Schreiben mit höherer Qualität (langsameres Preset, höhere Bitrate)
+    final.write_videofile(
+        filename,
+        codec="libx264",
+        audio_codec="aac",
+        temp_audiofile="temp-audio.m4a",
+        remove_temp=True,
+        fps=30,
+        preset="slow",
+        bitrate="5000k",
+        threads=4
+    )
     return filename
 
 # === CLOUDINARY UPLOAD ===
@@ -139,6 +166,10 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
 # === MAIN LOOP ===
 if __name__ == "__main__":
     print("📅 Scheduler läuft: Postet automatisch von 10–20 Uhr alle 50–70 Minuten. Abbruch mit STRG+C.")
+
+    # Port prüfen (Beispiel 8080)
+    check_port(8080)
+
     while True:
         now = datetime.datetime.now()
         if 10 <= now.hour < 20:
