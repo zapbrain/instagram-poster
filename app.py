@@ -220,7 +220,8 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"❌ Fehler: {e}")
             wait_minutes = random.randint(50, 70)
-            print(f"⏳ Warte {wait_minutes} Minuten bis zum nächsten Post.")
+            next_post = now + datetime.timedelta(minutes=wait_minutes)
+            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')} Uhr) bis zum nächsten Post.")
             time.sleep(wait_minutes * 60)
         else:
             next_start = now.replace(hour=10, minute=0, second=0, microsecond=0)
