@@ -196,18 +196,19 @@ def start_dummy_server(port=8080):
             with socketserver.TCPServer(("", port), SimpleHTTPRequestHandler) as httpd:
                 print(f"🌐 Dummy-HTTP-Server läuft auf Port {port}")
                 httpd.serve_forever()
-        except Exception as e:
-            print(f"⚠️ Dummy-Server konnte nicht starten: {e}")
+        except OSError as e:
+            print(f"⚠️ Dummy-Server konnte nicht starten: {e}. Wahrscheinlich läuft er schon.")
 
-    threading.Thread(target=run_server, daemon=True).start()
+    if check_port(port):
+        threading.Thread(target=run_server, daemon=True).start()
+    else:
+        print(f"⚠️ Port {port} belegt – Dummy-Server wird nicht erneut gestartet.")
 
 # === MAIN LOOP ===
 if __name__ == "__main__":
-    start_dummy_server(8080)  # ← Wichtig!
+    port = int(os.environ.get("PORT", 8080))
+    start_dummy_server(port)
     print("📅 Scheduler läuft: Postet automatisch von 10–20 Uhr alle 50–70 Minuten. Abbruch mit STRG+C.")
-
-    # Port prüfen (Beispiel 8080)
-    check_port(8080)
 
     while True:
         now = datetime.datetime.now()
@@ -221,7 +222,7 @@ if __name__ == "__main__":
                 print(f"❌ Fehler: {e}")
             wait_minutes = random.randint(50, 70)
             next_post = now + datetime.timedelta(minutes=wait_minutes)
-            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')} Uhr) bis zum nächsten Post.")
+            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')} Uhr) bis zum nächsten Post.") 
             time.sleep(wait_minutes * 60)
         else:
             next_start = now.replace(hour=10, minute=0, second=0, microsecond=0)
