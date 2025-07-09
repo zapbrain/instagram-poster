@@ -39,34 +39,66 @@ def check_port(port=8080):
 
 # === GLEICHUNGSGENERATOR ===
 def generate_equation_variant():
-    v = random.randint(1, 8)
-    if v == 1:
-        m, x, b = random.randint(1, 9), random.randint(1, 9), random.randint(1, 9)
-        return f"{m}x + {b} = {m * x + b}"
-    if v == 2:
-        a, x, b = random.randint(1, 5), random.randint(1, 10), random.randint(1, 10)
-        return f"{a}(x + {b}) = {a * (x + b)}"
-    if v == 3:
-        x, b = random.randint(1, 10), random.randint(1, 10)
-        y = x + b
+    variant = random.choice([1, 2, 3, 4, 5, 6, 7, 8])
+    
+    if variant == 1:
+        # einfache lineare Gleichung: 3x + 5 = 14
+        m = random.randint(1, 9)
+        x = random.randint(1, 9)
+        b = random.randint(1, 9)
+        y = m * x + b
+        return f"{m}x + {b} = {y}"
+
+    elif variant == 2:
+        # Gleichung mit Klammern: 2(x + 3) = 16
+        a = random.randint(1, 5)
+        x = random.randint(1, 10)
+        b = random.randint(1, 10)
+        y = a * (x + b)
+        return f"{a}(x + {b}) = {y}"
+
+    elif variant == 3:
+        # Bruchgleichung mit ganzzahligem Ergebnis: (x + 4) / 3 = 5
+        x = random.randint(1, 10)
+        b = random.randint(1, 10)
+        y = (x + b)
         if y % 3 != 0:
-            y += 3 - y % 3
+            y += 3 - (y % 3)  # auf nächste teilbare Zahl aufrunden
         return f"(x + {b}) / 3 = {y // 3}"
-    if v == 4:
-        r1, r2 = random.randint(1, 5), random.randint(1, 5)
+
+    elif variant == 4:
+        # Zwei Klammern: (x + 2)(x - 3) = ...
+        r1 = random.randint(1, 5)
+        r2 = random.randint(1, 5)
         return f"(x + {r1})(x - {r2}) = 0"
-    if v == 5:
-        a, b, c = random.randint(1, 5), random.randint(1, 10), random.randint(1, 10)
+
+    elif variant == 5:
+        # Quadratische Gleichung Standardform: x² + 3x + 2 = 0
+        a = random.randint(1, 5)
+        b = random.randint(1, 10)
+        c = random.randint(1, 10)
         return f"{a}x² + {b}x + {c} = 0"
-    if v == 6:
-        r1, r2 = random.randint(1, 9), random.randint(1, 9)
+
+    elif variant == 6:
+        # Produktform quadratische Gleichung: (x + 3)(x - 2) = 0
+        r1 = random.randint(1, 9)
+        r2 = random.randint(1, 9)
         return f"(x + {r1})(x - {r2}) = 0"
-    if v == 7:
-        m, x, b = -random.randint(1, 9), random.randint(1, 9), random.randint(-10, 10)
-        return f"{m}x + {b} = {m * x + b}"
-    if v == 8:
-        s, x = random.randint(1, 9), random.randint(1, 10)
-        return f"(x + {s})² = {(x + s) ** 2}"
+
+    elif variant == 7:
+        # Negative lineare Gleichung: -3x + 5 = -10
+        m = -random.randint(1, 9)
+        x = random.randint(1, 9)
+        b = random.randint(-10, 10)
+        y = m * x + b
+        return f"{m}x + {b} = {y}"
+
+    elif variant == 8:
+        # Klammerquadratische Gleichung: (x + 2)² = 49
+        s = random.randint(1, 9)
+        x = random.randint(1, 10)
+        right = (x + s) ** 2
+        return f"(x + {s})² = {right}"
 
 # === TEXTBILD ERSTELLEN ===
 def create_text_image(text, width, height):
