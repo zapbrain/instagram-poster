@@ -64,7 +64,7 @@ def create_text_image(text, width, height):
     img = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Arial.ttf", 120)
+        font = ImageFont.truetype("Arial.ttf", 50)
     except:
         font = ImageFont.truetype("DejaVuSans-Bold.ttf", 50) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
