@@ -10,10 +10,13 @@ from PIL import Image, ImageDraw, ImageFont
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 
-from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip
+from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
 import cloudinary
 import cloudinary.uploader
 import requests
+import threading
+from http.server import SimpleHTTPRequestHandler
+import socketserver
 
 # === ENV-VARIABLEN ===
 CLOUD_NAME = os.environ["CLOUD_NAME"]
@@ -25,7 +28,7 @@ ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
 OUTPUT_FOLDER = "daily_tiktoks"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# === PORT-CHECK (Beispiel) ===
+# === PORT-CHECK ===
 def check_port(port=8080):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
@@ -42,7 +45,6 @@ def generate_equation_variant():
     variant = random.choice([1, 2, 3, 4, 5, 6, 7, 8])
     
     if variant == 1:
-        # einfache lineare Gleichung: 3x + 5 = 14
         m = random.randint(1, 9)
         x = random.randint(1, 9)
         b = random.randint(1, 9)
@@ -50,7 +52,6 @@ def generate_equation_variant():
         return f"{m}x + {b} = {y}"
 
     elif variant == 2:
-        # Gleichung mit Klammern: 2(x + 3) = 16
         a = random.randint(1, 5)
         x = random.randint(1, 10)
         b = random.randint(1, 10)
@@ -58,35 +59,30 @@ def generate_equation_variant():
         return f"{a}(x + {b}) = {y}"
 
     elif variant == 3:
-        # Bruchgleichung mit ganzzahligem Ergebnis: (x + 4) / 3 = 5
         x = random.randint(1, 10)
         b = random.randint(1, 10)
         y = (x + b)
         if y % 3 != 0:
-            y += 3 - (y % 3)  # auf nächste teilbare Zahl aufrunden
+            y += 3 - (y % 3)
         return f"(x + {b}) / 3 = {y // 3}"
 
     elif variant == 4:
-        # Zwei Klammern: (x + 2)(x - 3) = ...
         r1 = random.randint(1, 5)
         r2 = random.randint(1, 5)
         return f"(x + {r1})(x - {r2}) = 0"
 
     elif variant == 5:
-        # Quadratische Gleichung Standardform: x² + 3x + 2 = 0
         a = random.randint(1, 5)
         b = random.randint(1, 10)
         c = random.randint(1, 10)
         return f"{a}x² + {b}x + {c} = 0"
 
     elif variant == 6:
-        # Produktform quadratische Gleichung: (x + 3)(x - 2) = 0
         r1 = random.randint(1, 9)
         r2 = random.randint(1, 9)
         return f"(x + {r1})(x - {r2}) = 0"
 
     elif variant == 7:
-        # Negative lineare Gleichung: -3x + 5 = -10
         m = -random.randint(1, 9)
         x = random.randint(1, 9)
         b = random.randint(-10, 10)
@@ -94,7 +90,6 @@ def generate_equation_variant():
         return f"{m}x + {b} = {y}"
 
     elif variant == 8:
-        # Klammerquadratische Gleichung: (x + 2)² = 49
         s = random.randint(1, 9)
         x = random.randint(1, 10)
         right = (x + s) ** 2
@@ -117,24 +112,12 @@ def create_text_image(text, width, height):
 def create_math_video():
     equation = generate_equation_variant()
     clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 3)
-
-    clip = clip.resize(height=1080)  # Frühzeitig skalieren!
-
+    clip = clip.resize(height=1080)
     text_np = create_text_image(equation, clip.w, 200)
     text_clip = ImageClip(text_np, duration=clip.duration).set_position("center")
-
-    final = CompositeVideoClip([clip, text_clip])  # Text overlay hinzufügen
-
+    final = CompositeVideoClip([clip, text_clip])
     filename = os.path.join(OUTPUT_FOLDER, f"{datetime.date.today()}_{int(time.time())}_math_video.mp4")
-
-    final.write_videofile(
-        filename,
-        codec="libx264",
-        audio=False,
-        fps=24,
-        preset="ultrafast",
-        threads=2
-    )
+    final.write_videofile(filename, codec="libx264", audio=False, fps=24, preset="ultrafast", threads=2)
     return filename
 
 # === CLOUDINARY UPLOAD ===
@@ -186,10 +169,7 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
     res_pub.raise_for_status()
     print("✅ Reel erfolgreich gepostet.")
 
-import threading
-from http.server import SimpleHTTPRequestHandler
-import socketserver
-
+# === DUMMY HTTP SERVER ===
 def start_dummy_server(port=8080):
     def run_server():
         try:
@@ -208,22 +188,27 @@ def start_dummy_server(port=8080):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     start_dummy_server(port)
+
     print("📅 Scheduler läuft: Postet automatisch von 10–20 Uhr alle 50–70 Minuten. Abbruch mit STRG+C.")
 
     while True:
         now = datetime.datetime.now()
+
         if 10 <= now.hour < 20:
             print(f"\n⏰ Post gestartet um {now.strftime('%H:%M:%S')}")
+
             try:
                 video_path = create_math_video()
                 video_url = upload_to_cloudinary(video_path)
                 post_to_instagram_reels(video_url)
             except Exception as e:
                 print(f"❌ Fehler: {e}")
+
             wait_minutes = random.randint(50, 70)
             next_post = now + datetime.timedelta(minutes=wait_minutes)
-            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')} Uhr) bis zum nächsten Post.") 
+            print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')}) bis zum nächsten Post.")
             time.sleep(wait_minutes * 60)
+
         else:
             next_start = now.replace(hour=10, minute=0, second=0, microsecond=0)
             if now.hour >= 20:
