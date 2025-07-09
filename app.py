@@ -186,8 +186,24 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
     res_pub.raise_for_status()
     print("✅ Reel erfolgreich gepostet.")
 
+import threading
+from http.server import SimpleHTTPRequestHandler
+import socketserver
+
+def start_dummy_server(port=8080):
+    def run_server():
+        try:
+            with socketserver.TCPServer(("", port), SimpleHTTPRequestHandler) as httpd:
+                print(f"🌐 Dummy-HTTP-Server läuft auf Port {port}")
+                httpd.serve_forever()
+        except Exception as e:
+            print(f"⚠️ Dummy-Server konnte nicht starten: {e}")
+
+    threading.Thread(target=run_server, daemon=True).start()
+
 # === MAIN LOOP ===
 if __name__ == "__main__":
+    start_dummy_server(8080)  # ← Wichtig!
     print("📅 Scheduler läuft: Postet automatisch von 10–20 Uhr alle 50–70 Minuten. Abbruch mit STRG+C.")
 
     # Port prüfen (Beispiel 8080)
