@@ -66,11 +66,12 @@ def create_text_image(text, width, height):
     try:
         font = ImageFont.truetype("Arial.ttf", 120)
     except:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 120) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 50) if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text(((width - w) // 2, (height - h) // 2), text, font=font, fill="black")
     return np.array(img)
+
 
 # === VIDEO ERSTELLEN ===
 def create_math_video():
