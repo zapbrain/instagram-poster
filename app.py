@@ -128,7 +128,7 @@ def create_math_video():
 # === CLOUDINARY UPLOAD ===
 def upload_to_cloudinary(filepath):
     cloudinary.config(cloud_name=CLOUD_NAME, api_key=API_KEY, api_secret=API_SECRET)
-    res = cloudinary.uploader.upload_large(filepath, resource_type="video")
+    res = cloudinary.uploader.upload_large(filepath, resource_type="video", progress_callback=None)
     return res["secure_url"]
 
 # === STATUS ABFRAGEN ===
