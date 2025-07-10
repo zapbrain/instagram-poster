@@ -196,30 +196,44 @@ if __name__ == "__main__":
 
     print("📅 Scheduler läuft: Postet automatisch von 10–20 Uhr alle 50–70 Minuten. Abbruch mit STRG+C.")
 
+    next_post_time = None
+
     while True:
         now = datetime.datetime.now()
 
         if 10 <= now.hour < 20:
-            print(f"\n⏰ Post gestartet um {now.strftime('%H:%M:%S')}")
+            if next_post_time is None or now >= next_post_time:
+                print(f"\n⏰ Post gestartet um {now.strftime('%H:%M:%S')}")
 
-            try:
-                video_path = create_math_video()
-                video_url = upload_to_cloudinary(video_path)
-                post_to_instagram_reels(video_url)
-            except Exception as e:
-                print(f"❌ Fehler: {e}")
+                try:
+                    video_path = create_math_video()
+                    video_url = upload_to_cloudinary(video_path)
+                    post_to_instagram_reels(video_url)
+                except Exception as e:
+                    print(f"❌ Fehler: {e}")
 
-            wait_minutes = random.randint(50, 70)
-            next_post = now + datetime.timedelta(minutes=wait_minutes)
-
-            # Prüfen, ob nächster Post noch im Zeitfenster liegt
-            if next_post.hour < 20:
-                print(f"⏳ Warte {wait_minutes} Minuten (bis {next_post.strftime('%H:%M')}) bis zum nächsten Post.")
-                time.sleep(wait_minutes * 60)
+                wait_minutes = random.randint(50, 70)
+                next_post_time = now + datetime.timedelta(minutes=wait_minutes)
+                print(f"⏳ Nächster Post geplant um {next_post_time.strftime('%H:%M:%S')}")
+            
             else:
-                # Warten bis zum nächsten Tag um 10:00
+                # Warten bis zum nächsten Post-Termin, aber max 30 Sekunden am Stück
+                wait_seconds = (next_post_time - now).total_seconds()
+                sleep_time = min(wait_seconds, 30)
+                time.sleep(sleep_time)
+        else:
+            # Außerhalb Zeitfenster: Warte bis heute 10 Uhr oder morgen 10 Uhr
+            if now.hour >= 20:
+                # Bis morgen 10 Uhr
                 next_start = now.replace(hour=10, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
-                wait_seconds = (next_start - now).total_seconds()
-                print(f"🌙 Geplante nächste Zeit ({next_post.strftime('%H:%M')}) liegt außerhalb der Postzeit. Warte bis morgen 10:00 Uhr.")
-                time.sleep(wait_seconds)
-
+            else:
+                # Vor 10 Uhr heute
+                next_start = now.replace(hour=10, minute=0, second=0, microsecond=0)
+            
+            wait_seconds = (next_start - now).total_seconds()
+            print(f"🌙 Außerhalb Postzeit. Warte bis {next_start.strftime('%Y-%m-%d %H:%M:%S')} ({int(wait_seconds)} Sekunden)")
+            # Auch hier max 30 Sekunden schlafen, um abbrechen/Logs zu ermöglichen
+            while wait_seconds > 0:
+                sleep_time = min(wait_seconds, 30)
+                time.sleep(sleep_time)
+                wait_seconds -= sleep_time
