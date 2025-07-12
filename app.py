@@ -4,7 +4,7 @@ import random
 import datetime
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from flask import Flask
+from flask import Flask, request
 from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
 import cloudinary
 import cloudinary.uploader
@@ -68,7 +68,11 @@ def create_text_image(text, width, height):
 # === Video erstellen ===
 def create_math_video():
     equation = generate_equation_variant()
-    clip = VideoFileClip(os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")).subclip(0, 3).resize(height=1080)
+    print(f"[INFO] Generierte Gleichung: {equation}")
+    template_path = os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Vorlage.mp4 fehlt unter: {template_path}")
+    clip = VideoFileClip(template_path).subclip(0, 3).resize(height=1080)
     text_np = create_text_image(equation, clip.w, 200)
     text_clip = ImageClip(text_np, duration=clip.duration).set_position("center")
     final = CompositeVideoClip([clip, text_clip])
@@ -111,7 +115,7 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
     creation_id = res.json()["id"]
 
     if not wait_for_media_ready(creation_id, ACCESS_TOKEN):
-        print("❌ Media nicht bereit – Abbruch.")
+        print("[ERROR] Media nicht bereit – Abbruch.")
         return
 
     res_pub = requests.post(publish_url, data={
@@ -119,24 +123,32 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
         "access_token": ACCESS_TOKEN
     })
     res_pub.raise_for_status()
-    print("✅ Reel erfolgreich gepostet.")
+    print("[INFO] Reel erfolgreich gepostet.")
 
-# === Flask-Trigger ===
+# === Flask App ===
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/", methods=["GET", "HEAD"])
 def trigger_post():
-    now = datetime.datetime.now()
-    if 10 <= now.hour < 20:
-        try:
+    if request.method == "HEAD":
+        return "", 200
+
+    try:
+        now = datetime.datetime.now()
+        print(f"[INFO] Trigger gestartet um {now}")
+        if 10 <= now.hour < 20:
             video_path = create_math_video()
+            print(f"[INFO] Video erstellt: {video_path}")
             video_url = upload_to_cloudinary(video_path)
+            print(f"[INFO] Hochgeladen nach: {video_url}")
             post_to_instagram_reels(video_url)
             return "✅ Reel gepostet", 200
-        except Exception as e:
-            return f"❌ Fehler: {str(e)}", 500
-    else:
-        return "⏳ Nicht innerhalb des Posting-Zeitfensters (10–20 Uhr)", 200
+        else:
+            print("[INFO] Nicht innerhalb des Posting-Zeitfensters (10–20 Uhr)")
+            return "⏳ Zeitfenster nicht erreicht", 200
+    except Exception as e:
+        print(f"[ERROR] {e}", flush=True)
+        return f"❌ Fehler: {e}", 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
