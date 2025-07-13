@@ -11,13 +11,16 @@ import cloudinary.uploader
 import requests
 
 # === ENV ===
-CLOUD_NAME = os.environ["CLOUD_NAME"]
-API_KEY = os.environ["API_KEY"]
-API_SECRET = os.environ["API_SECRET"]
-INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
-ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
+CLOUD_NAME = os.environ.get("CLOUD_NAME")
+API_KEY = os.environ.get("API_KEY")
+API_SECRET = os.environ.get("API_SECRET")
+INSTAGRAM_USER_ID = os.environ.get("INSTAGRAM_USER_ID")
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
 OUTPUT_FOLDER = "daily_tiktoks"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+if not all([CLOUD_NAME, API_KEY, API_SECRET, INSTAGRAM_USER_ID, ACCESS_TOKEN]):
+    raise EnvironmentError("Mindestens eine Umgebungsvariable fehlt (CLOUD_NAME, API_KEY, API_SECRET, INSTAGRAM_USER_ID, ACCESS_TOKEN)")
 
 # === Equation Generator ===
 def generate_equation_variant():
@@ -57,7 +60,7 @@ def create_text_image(text, width, height):
     draw = ImageDraw.Draw(img)
     try:
         font = ImageFont.truetype("Arial.ttf", 55)
-    except:
+    except Exception:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         font = ImageFont.truetype(font_path, 55) if os.path.exists(font_path) else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -69,21 +72,30 @@ def create_text_image(text, width, height):
 def create_math_video():
     equation = generate_equation_variant()
     print(f"[INFO] Generierte Gleichung: {equation}")
+
     template_path = os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Vorlage.mp4 fehlt unter: {template_path}")
+    print(f"[DEBUG] Suche Vorlage unter: {template_path}")
+
+    if not os.path.isfile(template_path):
+        raise FileNotFoundError(f"Vorlage.mp4 nicht gefunden unter: {template_path}")
+
     clip = VideoFileClip(template_path).subclip(0, 3).resize(height=1080)
     text_np = create_text_image(equation, clip.w, 200)
     text_clip = ImageClip(text_np, duration=clip.duration).set_position("center")
     final = CompositeVideoClip([clip, text_clip])
+
     filename = os.path.join(OUTPUT_FOLDER, f"{datetime.date.today()}_{int(time.time())}_math_video.mp4")
     final.write_videofile(filename, codec="libx264", audio=False, fps=24, preset="ultrafast", threads=2)
+
+    print(f"[INFO] Video gespeichert: {filename}")
     return filename
 
 # === Upload to Cloudinary ===
 def upload_to_cloudinary(filepath):
     cloudinary.config(cloud_name=CLOUD_NAME, api_key=API_KEY, api_secret=API_SECRET)
+    print(f"[INFO] Upload von {filepath} zu Cloudinary gestartet.")
     res = cloudinary.uploader.upload_large(filepath, resource_type="video")
+    print(f"[INFO] Upload fertig, URL: {res['secure_url']}")
     return res["secure_url"]
 
 # === Media Status warten ===
@@ -92,7 +104,9 @@ def wait_for_media_ready(creation_id, access_token, max_wait=60, interval=5):
     waited = 0
     while waited < max_wait:
         res = requests.get(url)
-        if res.json().get("status_code") == "FINISHED":
+        status = res.json().get("status_code")
+        print(f"[DEBUG] Media Status: {status}")
+        if status == "FINISHED":
             return True
         time.sleep(interval)
         waited += interval
@@ -138,13 +152,11 @@ def trigger_post():
         print(f"[INFO] Trigger gestartet um {now}")
         if 10 <= now.hour < 20:
             video_path = create_math_video()
-            print(f"[INFO] Video erstellt: {video_path}")
             video_url = upload_to_cloudinary(video_path)
-            print(f"[INFO] Hochgeladen nach: {video_url}")
             post_to_instagram_reels(video_url)
             return "✅ Reel gepostet", 200
         else:
-            print("[INFO] Nicht innerhalb des Posting-Zeitfensters (10–20 Uhr)")
+            print("[INFO] Nicht im Zeitfenster 10–20 Uhr")
             return "⏳ Zeitfenster nicht erreicht", 200
     except Exception as e:
         print(f"[ERROR] {e}", flush=True)
