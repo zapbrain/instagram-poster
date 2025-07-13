@@ -102,7 +102,7 @@ def upload_to_cloudinary(filepath):
     return res["secure_url"]
 
 # === Media Status warten ===
-def wait_for_media_ready(creation_id, access_token, max_wait=60, interval=5):
+def wait_for_media_ready(creation_id, access_token, max_wait=180, interval=5):
     url = f"https://graph.facebook.com/v18.0/{creation_id}?fields=status_code&access_token={access_token}"
     waited = 0
     while waited < max_wait:
@@ -153,7 +153,7 @@ def trigger_post():
     try:
         now = datetime.datetime.now()
         print(f"[INFO] Trigger gestartet um {now}")
-        if 10 <= now.hour < 23:
+        if 10 <= now.hour < 20:
             video_path = create_math_video()
             video_url = upload_to_cloudinary(video_path)
             post_to_instagram_reels(video_url)
