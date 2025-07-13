@@ -153,7 +153,7 @@ def trigger_post():
     try:
         now = datetime.datetime.now()
         print(f"[INFO] Trigger gestartet um {now}")
-        if 10 <= now.hour < 20:
+        if 10 <= now.hour < 23:
             video_path = create_math_video()
             video_url = upload_to_cloudinary(video_path)
             post_to_instagram_reels(video_url)
