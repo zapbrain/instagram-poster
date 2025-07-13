@@ -10,6 +10,9 @@ import cloudinary
 import cloudinary.uploader
 import requests
 
+if not hasattr(Image, "ANTIALIAS"):
+    Image.ANTIALIAS = Image.Resampling.LANCZOS
+
 # === ENV ===
 CLOUD_NAME = os.environ.get("CLOUD_NAME")
 API_KEY = os.environ.get("API_KEY")
