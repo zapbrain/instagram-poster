@@ -100,7 +100,7 @@ def upload_to_cloudinary(filepath):
     return res["secure_url"]
 
 # === Auf Media-Ready warten ===
-def wait_for_media_ready(creation_id, access_token, max_wait=300, interval=5):
+def wait_for_media_ready(creation_id, access_token, max_wait=180, interval=5):
     url = f"https://graph.facebook.com/v18.0/{creation_id}?fields=status_code&access_token={access_token}"
     waited = 0
     while waited < max_wait:
