@@ -2,6 +2,7 @@ import os
 import time
 import random
 import datetime
+import threading
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from flask import Flask, request
@@ -23,12 +24,11 @@ OUTPUT_FOLDER = "daily_tiktoks"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 if not all([CLOUD_NAME, API_KEY, API_SECRET, INSTAGRAM_USER_ID, ACCESS_TOKEN]):
-    raise EnvironmentError("Mindestens eine Umgebungsvariable fehlt (CLOUD_NAME, API_KEY, API_SECRET, INSTAGRAM_USER_ID, ACCESS_TOKEN)")
+    raise EnvironmentError("Mindestens eine Umgebungsvariable fehlt.")
 
 # === Equation Generator ===
 def generate_equation_variant():
     variant = random.randint(1, 8)
-
     if variant == 1:
         m, x, b = random.randint(1, 9), random.randint(1, 9), random.randint(1, 9)
         y = m * x + b
@@ -41,7 +41,7 @@ def generate_equation_variant():
         y = x + b
         y += (3 - y % 3) if y % 3 != 0 else 0
         return f"(x + {b}) / 3 = {y // 3}"
-    elif variant == 4 or variant == 6:
+    elif variant in [4, 6]:
         r1, r2 = random.randint(1, 5), random.randint(1, 5)
         return f"(x + {r1})(x - {r2}) = 0"
     elif variant == 5:
@@ -63,7 +63,7 @@ def create_text_image(text, width, height):
     draw = ImageDraw.Draw(img)
     try:
         font = ImageFont.truetype("Arial.ttf", 55)
-    except Exception:
+    except:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         font = ImageFont.truetype(font_path, 55) if os.path.exists(font_path) else ImageFont.load_default()
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -77,8 +77,6 @@ def create_math_video():
     print(f"[INFO] Generierte Gleichung: {equation}")
 
     template_path = os.path.join(OUTPUT_FOLDER, "Vorlage.mp4")
-    print(f"[DEBUG] Suche Vorlage unter: {template_path}")
-
     if not os.path.isfile(template_path):
         raise FileNotFoundError(f"Vorlage.mp4 nicht gefunden unter: {template_path}")
 
@@ -93,29 +91,29 @@ def create_math_video():
     print(f"[INFO] Video gespeichert: {filename}")
     return filename
 
-# === Upload to Cloudinary ===
+# === Upload zu Cloudinary ===
 def upload_to_cloudinary(filepath):
     cloudinary.config(cloud_name=CLOUD_NAME, api_key=API_KEY, api_secret=API_SECRET)
-    print(f"[INFO] Upload von {filepath} zu Cloudinary gestartet.")
+    print(f"[INFO] Upload {filepath} → Cloudinary...")
     res = cloudinary.uploader.upload_large(filepath, resource_type="video")
-    print(f"[INFO] Upload fertig, URL: {res['secure_url']}")
+    print(f"[INFO] Cloudinary URL: {res['secure_url']}")
     return res["secure_url"]
 
-# === Media Status warten ===
-def wait_for_media_ready(creation_id, access_token, max_wait=180, interval=5):
+# === Auf Media-Ready warten ===
+def wait_for_media_ready(creation_id, access_token, max_wait=300, interval=5):
     url = f"https://graph.facebook.com/v18.0/{creation_id}?fields=status_code&access_token={access_token}"
     waited = 0
     while waited < max_wait:
         res = requests.get(url)
         status = res.json().get("status_code")
-        print(f"[DEBUG] Media Status: {status}")
+        print(f"[DEBUG] Status für Creation {creation_id}: {status}")
         if status == "FINISHED":
             return True
         time.sleep(interval)
         waited += interval
     return False
 
-# === Post to Instagram ===
+# === Instagram posten ===
 def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel #puzzle"):
     create_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media"
     publish_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media_publish"
@@ -127,6 +125,7 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
         "access_token": ACCESS_TOKEN
     }
 
+    print(f"[INFO] Sende Video an Instagram...")
     res = requests.post(create_url, data=payload)
     res.raise_for_status()
     creation_id = res.json()["id"]
@@ -135,12 +134,23 @@ def post_to_instagram_reels(video_url, caption="Can you solve this? #math #reel 
         print("[ERROR] Media nicht bereit – Abbruch.")
         return
 
-    res_pub = requests.post(publish_url, data={
-        "creation_id": creation_id,
-        "access_token": ACCESS_TOKEN
-    })
+    res_pub = requests.post(publish_url, data={"creation_id": creation_id, "access_token": ACCESS_TOKEN})
     res_pub.raise_for_status()
-    print("[INFO] Reel erfolgreich gepostet.")
+    print("[INFO] ✅ Reel gepostet.")
+
+# === Hauptprozess als Thread ===
+def post_process():
+    try:
+        now = datetime.datetime.now()
+        print(f"[INFO] Start im Hintergrund: {now}")
+        if 10 <= now.hour < 20:
+            video_path = create_math_video()
+            video_url = upload_to_cloudinary(video_path)
+            post_to_instagram_reels(video_url)
+        else:
+            print("[INFO] Zeitfenster 10–20 Uhr nicht erreicht.")
+    except Exception as e:
+        print(f"[ERROR] Fehler im Hintergrundprozess: {e}")
 
 # === Flask App ===
 app = Flask(__name__)
@@ -149,21 +159,8 @@ app = Flask(__name__)
 def trigger_post():
     if request.method == "HEAD":
         return "", 200
-
-    try:
-        now = datetime.datetime.now()
-        print(f"[INFO] Trigger gestartet um {now}")
-        if 10 <= now.hour < 20:
-            video_path = create_math_video()
-            video_url = upload_to_cloudinary(video_path)
-            post_to_instagram_reels(video_url)
-            return "✅ Reel gepostet", 200
-        else:
-            print("[INFO] Nicht im Zeitfenster 10–20 Uhr")
-            return "⏳ Zeitfenster nicht erreicht", 200
-    except Exception as e:
-        print(f"[ERROR] {e}", flush=True)
-        return f"❌ Fehler: {e}", 500
+    threading.Thread(target=post_process).start()
+    return "🚀 Upload gestartet – läuft im Hintergrund.", 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
