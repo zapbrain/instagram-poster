@@ -157,8 +157,6 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET", "HEAD"])
 def trigger_post():
-    if request.method == "HEAD":
-        return "", 200
     threading.Thread(target=post_process).start()
     return "🚀 Upload gestartet – läuft im Hintergrund.", 200
 
