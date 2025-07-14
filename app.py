@@ -150,7 +150,8 @@ def post_process():
         else:
             print("[INFO] Zeitfenster 10–20 Uhr nicht erreicht.")
     except Exception as e:
-        print(f"[ERROR] Fehler im Hintergrundprozess: {e}")
+        print(f"[ERROR] Fehler im Hintergrundprozess:\n{traceback.format_exc()}")
+
 
 # === Flask App ===
 app = Flask(__name__)
