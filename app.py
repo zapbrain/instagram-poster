@@ -10,6 +10,8 @@ from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
 import cloudinary
 import cloudinary.uploader
 import requests
+import traceback
+
 
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
