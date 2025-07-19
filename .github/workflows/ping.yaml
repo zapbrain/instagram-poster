@@ -3,7 +3,7 @@ name: Ping Render App
 on:
   workflow_dispatch:  # manuelles Starten per Button
   schedule:
-    - cron: '*/3 * * * *'  # alle 3 Minuten
+    - cron: '*/5 * * * *'  # alle 5 Minuten
 
 jobs:
   ping:
