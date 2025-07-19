@@ -12,7 +12,6 @@ import cloudinary.uploader
 import requests
 import traceback
 
-
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 
@@ -151,15 +150,15 @@ def post_process():
             post_to_instagram_reels(video_url)
         else:
             print("[INFO] Zeitfenster 10–20 Uhr nicht erreicht.")
-    except Exception as e:
+    except Exception:
         print(f"[ERROR] Fehler im Hintergrundprozess:\n{traceback.format_exc()}")
-
 
 # === Flask App ===
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "HEAD"])
 def trigger_post():
+    print("[DEBUG] Trigger endpoint wurde aufgerufen")  # <=== HIER NEU
     threading.Thread(target=post_process).start()
     return "🚀 Upload gestartet – läuft im Hintergrund.", 200
 
